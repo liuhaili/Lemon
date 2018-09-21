@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Multilanguage\**" />
+    <Compile Remove="RBAC\**" />
+    <EmbeddedResource Remove="Multilanguage\**" />
+    <EmbeddedResource Remove="RBAC\**" />
+    <None Remove="Multilanguage\**" />
+    <None Remove="RBAC\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Extensions\XmlNodeExtension.cs" />
+    <Compile Remove="InvokeRoute\ReflectionExtensions2.cs" />
+  </ItemGroup>
+
+</Project>
