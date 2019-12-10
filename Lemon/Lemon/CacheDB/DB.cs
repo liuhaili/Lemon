@@ -9,7 +9,7 @@ namespace Lemon.CacheDB
     /// <summary>
     /// 一个数据库
     /// </summary>
-    internal class DB
+    public class DB
     {
         /// <summary>
         /// 数据库名称
@@ -23,38 +23,57 @@ namespace Lemon.CacheDB
             this.Name = name;
             Tables = new Dictionary<Type, DBTable>();
         }
-        
+
         public void ClearAll()
         {
             Tables.Clear();
         }
 
-        public void Clear(Type type)
+        public DBTable GetTable(Type type)
+        {
+            if (!Tables.ContainsKey(type))
+                return null;
+            return Tables[type];
+        }
+
+        public IEnumerable<Type> GetAllType()
+        {
+            return Tables.Keys;
+        }
+
+        public bool HasTable(Type type)
+        {
+            return Tables.ContainsKey(type);
+        }
+
+        public void RemoveTable(Type type)
         {
             if (!Tables.ContainsKey(type))
                 return;
-            Tables[type].Clear();
+            Tables.Remove(type);
         }
 
-        /// <summary>
-        /// 获取区域下某个类型的列表
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
-        public DBTable GetTable(Type type)
+        public void AddTable<T>(List<T> datas) where T : IData
         {
-            lock (tablesLock)
+            Type type = typeof(T);
+            if (Tables.ContainsKey(type))
             {
-                return Tables[type] as DBTable;
+                Tables.Remove(type);
             }
+            var dbtable = new DBTable();
+            dbtable.Load<T>(datas);
+            Tables.Add(type, dbtable);
         }
 
-        public List<Type> GetAllType()
+        public void AddTable(Type type,List<object> datas)
         {
-            lock (tablesLock)
+            if (Tables.ContainsKey(type))
             {
-                return new List<Type>(Tables.Keys);
+                Tables.Remove(type);
             }
+            var dbtable = new DBTable();
+            dbtable.Load(datas);
+            Tables.Add(type, dbtable);
         }
     }
 }

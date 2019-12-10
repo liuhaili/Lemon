@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Text;
+using System.Collections;
 using System.IO;
+using System.Data;
+using System.Text.RegularExpressions;
 using System.Diagnostics;
-using System.Collections.Generic;
 
 namespace Lemon.Csv
 {
@@ -24,15 +26,15 @@ namespace Lemon.Csv
     #endregion
     public class CsvStreamReader
     {
-        private List<object> rowAL;        //行链表,CSV文件的每一行就是一个链
+        private ArrayList rowAL;        //行链表,CSV文件的每一行就是一个链
         private string fileName;        //文件名
         private Encoding encoding;      //编码
 
         public CsvStreamReader()
         {
-            this.rowAL = new List<object>();
+            this.rowAL = new ArrayList();
             this.fileName = "";
-            this.encoding = Encoding.UTF8;
+            this.encoding = Encoding.Default;
         }
 
         /// <summary>
@@ -41,15 +43,15 @@ namespace Lemon.Csv
         /// <param name="fileName">文件名,包括文件路径</param>
         public CsvStreamReader(string fileName)
         {
-            this.rowAL = new List<object>();
+            this.rowAL = new ArrayList();
             this.fileName = fileName;
-            this.encoding = Encoding.UTF8;
+            this.encoding = Encoding.Default;
             LoadCsvFile();
         }
 
         public CsvStreamReader(StreamReader sr)
         {
-            this.rowAL = new List<object>();
+            this.rowAL = new ArrayList();
             LoadCsvFile(sr);
         }
 
@@ -60,7 +62,7 @@ namespace Lemon.Csv
         /// <param name="encoding">文件编码</param>
         public CsvStreamReader(string fileName, Encoding encoding)
         {
-            this.rowAL = new List<object>();
+            this.rowAL = new ArrayList();
             this.fileName = fileName;
             this.encoding = encoding;
             LoadCsvFile();
@@ -113,7 +115,7 @@ namespace Lemon.Csv
                 maxCol = 0;
                 for (int i = 0; i < this.rowAL.Count; i++)
                 {
-                    List<object> colAL = (List<object>)this.rowAL[i];
+                    ArrayList colAL = (ArrayList)this.rowAL[i];
 
                     maxCol = (maxCol > colAL.Count) ? maxCol : colAL.Count;
                 }
@@ -137,7 +139,7 @@ namespace Lemon.Csv
                 //数据有效性验证
                 CheckRowValid(row);
                 CheckColValid(col);
-                List<object> colAL = (List<object>)this.rowAL[row - 1];
+                ArrayList colAL = (ArrayList)this.rowAL[row - 1];
 
                 //如果请求列数据大于当前行的列时,返回空值
 
@@ -150,7 +152,72 @@ namespace Lemon.Csv
             }
         }
 
-        public List<object> GetRawData()
+
+        /// <summary>
+        /// 根据最小行，最大行，最小列，最大列，来生成一个DataTable类型的数据
+
+        /// 行等于1代表第一行
+
+        /// 列等于1代表第一列
+
+        /// maxrow: -1代表最大行
+        /// maxcol: -1代表最大列
+        /// </summary>
+        public DataTable this[int minRow, int maxRow, int minCol, int maxCol]
+        {
+            get
+            {
+                //数据有效性验证
+
+                CheckRowValid(minRow);
+                CheckMaxRowValid(maxRow);
+                CheckColValid(minCol);
+                CheckMaxColValid(maxCol);
+                if (maxRow == -1)
+                {
+                    maxRow = RowCount;
+                }
+                if (maxCol == -1)
+                {
+                    maxCol = ColCount;
+                }
+                if (maxRow < minRow)
+                {
+                    throw new Exception("最大行数不能小于最小行数");
+                }
+                if (maxCol < minCol)
+                {
+                    throw new Exception("最大列数不能小于最小列数");
+                }
+                DataTable csvDT = new DataTable();
+                int i;
+                int col;
+                int row;
+
+                //增加列
+
+                for (i = minCol; i <= maxCol; i++)
+                {
+                    csvDT.Columns.Add(i.ToString());
+                }
+                for (row = minRow; row <= maxRow; row++)
+                {
+                    DataRow csvDR = csvDT.NewRow();
+
+                    i = 0;
+                    for (col = minCol; col <= maxCol; col++)
+                    {
+                        csvDR[i] = this[row, col];
+                        i++;
+                    }
+                    csvDT.Rows.Add(csvDR);
+                }
+
+                return csvDT;
+            }
+        }
+
+        public ArrayList GetRawData()
         {
             return this.rowAL;
         }
@@ -243,19 +310,16 @@ namespace Lemon.Csv
             }
             if (this.encoding == null)
             {
-                this.encoding = Encoding.UTF8;
+                this.encoding = Encoding.Default;
             }
-            FileStream fsr = new FileStream(this.fileName,FileMode.Open);
-            StreamReader sr = new StreamReader(fsr);
+
+            StreamReader sr = new StreamReader(this.fileName, this.encoding);
             LoadCsvFile(sr);
-            fsr.Dispose();
         }
 
         private void LoadCsvFile(StreamReader sr)
         {
-            string csvDataLine;
-
-            csvDataLine = "";
+            string csvDataLine = "";
             while (true)
             {
                 string fileDataLine;
@@ -280,11 +344,11 @@ namespace Lemon.Csv
                     csvDataLine = "";
                 }
             }
-            sr.Dispose();
+            sr.Close();
             //数据行出现奇数个引号
             if (csvDataLine.Length > 0)
             {
-                throw new Exception("CSV文件的格式有错误");
+                throw new Exception("CSV文件的格式有错误" + csvDataLine);
             }
         }
 
@@ -402,7 +466,7 @@ namespace Lemon.Csv
 
             //return;
 
-            List<object> colAL = new List<object>();
+            ArrayList colAL = new ArrayList();
             string[] dataArray = newDataLine.Split(',');
             bool oddStartQuota;       //是否以奇数个引号开始
 
@@ -452,7 +516,7 @@ namespace Lemon.Csv
             }
             if (oddStartQuota)
             {
-                throw new Exception("数据格式有问题");
+                throw new Exception("数据格式有问题" + newDataLine);
             }
             this.rowAL.Add(colAL);
         }

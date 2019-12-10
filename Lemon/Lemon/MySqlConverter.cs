@@ -141,7 +141,7 @@ namespace Lemon
                     else if (propertyType == typeof(System.Boolean))
                         propertyValue = val.ToString();
                     else
-                        propertyValue = "'" + val.ToString() + "'";
+                        propertyValue = "'" + val.ToString().Replace("'", "\\'") + "'";
                 }
                 else
                 {
